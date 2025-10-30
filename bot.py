@@ -23,6 +23,14 @@ SECURITY_MSG = {
     "ru": "🔒 Добро пожаловать в SafeJob!\nВсе вакансии тщательно проверяются нашей командой.\nПожалуйста, заполняйте информацию внимательно, чтобы команда могла подобрать лучшую работу для вас."
 }
 
+# Mensagem final
+FINAL_MSG = {
+    "en": "✅ Thank you! Your information has been sent successfully. Our team will review your profile and contact you soon.",
+    "pt": "✅ Obrigado! Suas informações foram enviadas com sucesso. Nossa equipe vai analisar seu perfil e entrar em contato em breve.",
+    "es": "✅ ¡Gracias! Tu información ha sido enviada con éxito. Nuestro equipo revisará tu perfil y se pondrá en contacto contigo pronto.",
+    "ru": "✅ Спасибо! Ваша информация успешно отправлена. Наша команда свяжется с вами в ближайшее время."
+}
+
 # Perguntas multilíngues com emojis
 QUESTIONS = {
     "en": [
@@ -37,6 +45,7 @@ QUESTIONS = {
         "🚚 Are you available to relocate? (Yes/No)",
         "📸 Are you a model and want to provide photos? (Yes/No) – optional",
         "🎥 Send a short presentation video (up to 1 min)",
+        "📱 What's your Telegram contact? (Add @username or phone number)",
         "📝 Any additional notes?"
     ],
     "pt": [
@@ -51,6 +60,7 @@ QUESTIONS = {
         "🚚 Está disponível para mudar de cidade? (Sim/Não)",
         "📸 Você é modelo e deseja enviar fotos? (Sim/Não) – opcional",
         "🎥 Envie um vídeo de apresentação (até 1 minuto)",
+        "📱 Qual é o seu Telegram para contato? (adicione o número ou @)",
         "📝 Alguma observação adicional?"
     ],
     "es": [
@@ -65,6 +75,7 @@ QUESTIONS = {
         "🚚 ¿Estás disponible para mudarte? (Sí/No)",
         "📸 ¿Eres modelo y deseas enviar fotos? (Sí/No) – opcional",
         "🎥 Envía un video de presentación (hasta 1 minuto)",
+        "📱 ¿Cuál es tu Telegram de contacto? (agrega el número o @)",
         "📝 ¿Alguna observación adicional?"
     ],
     "ru": [
@@ -79,24 +90,84 @@ QUESTIONS = {
         "🚚 Готовы ли вы переехать? (Да/Нет)",
         "📸 Вы модель и хотите отправить фото? (Да/Нет) – опционально",
         "🎥 Отправьте презентационное видео (до 1 мин)",
+        "📱 Ваш Telegram для связи? (укажите номер или @)",
         "📝 Дополнительные заметки?"
     ]
 }
 
+# Campos para formatação final no grupo
+FIELDS = {
+    "pt": [
+        ("👤 Nome",),
+        ("🎂 Idade",),
+        ("🏳️ Nacionalidade",),
+        ("💼 Experiência",),
+        ("🌐 Idiomas",),
+        ("📍 Localização",),
+        ("⚠️ Multas",),
+        ("🛂 Visto de trabalho válido",),
+        ("🚚 Disponível para mudar de cidade",),
+        ("📸 Modelo (enviou fotos?)",),
+        ("🎥 Vídeo de apresentação",),
+        ("📱 Telegram",),
+        ("📝 Observações",)
+    ],
+    "en": [
+        ("👤 Name",),
+        ("🎂 Age",),
+        ("🏳️ Nationality",),
+        ("💼 Experience",),
+        ("🌐 Languages",),
+        ("📍 Location",),
+        ("⚠️ Fines",),
+        ("🛂 Valid work visa",),
+        ("🚚 Available to relocate",),
+        ("📸 Model (sent photos?)",),
+        ("🎥 Presentation video",),
+        ("📱 Telegram",),
+        ("📝 Notes",)
+    ],
+    "es": [
+        ("👤 Nombre",),
+        ("🎂 Edad",),
+        ("🏳️ Nacionalidad",),
+        ("💼 Experiencia",),
+        ("🌐 Idiomas",),
+        ("📍 Ubicación",),
+        ("⚠️ Multas",),
+        ("🛂 Visa de trabajo válida",),
+        ("🚚 Disponible para mudarse",),
+        ("📸 Modelo (envió fotos?)",),
+        ("🎥 Video de presentación",),
+        ("📱 Telegram",),
+        ("📝 Observaciones",)
+    ],
+    "ru": [
+        ("👤 Имя",),
+        ("🎂 Возраст",),
+        ("🏳️ Национальность",),
+        ("💼 Опыт",),
+        ("🌐 Языки",),
+        ("📍 Местоположение",),
+        ("⚠️ Штрафы",),
+        ("🛂 Рабочая виза",),
+        ("🚚 Готов к переезду",),
+        ("📸 Модель (фото?)",),
+        ("🎥 Видео",),
+        ("📱 Telegram",),
+        ("📝 Примечания",)
+    ]
+}
+
 # =========================
-# FUNÇÕES PRINCIPAIS
+# FUNÇÕES DO BOT
 # =========================
 
-# /start — escolha de idioma
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton(name, callback_data=code)] for code, name in LANGUAGES.items()]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "🌐 Select your language / Selecione seu idioma / Seleccione su idioma / Выберите язык:",
-        reply_markup=reply_markup
-    )
+    await update.message.reply_text("🌐 Select your language / Selecione seu idioma / Seleccione su idioma / Выберите язык:", reply_markup=reply_markup)
 
-# Escolha de idioma
 async def language_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -107,7 +178,6 @@ async def language_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.message.reply_text(SECURITY_MSG[lang])
     await ask_next_question(update, context)
 
-# Enviar próxima pergunta
 async def ask_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = context.user_data.get("lang", "en")
     index = context.user_data.get("q_index", 0)
@@ -115,6 +185,7 @@ async def ask_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if index >= len(questions):
         await send_to_group(update, context)
+        await update.effective_chat.send_message(FINAL_MSG[lang])
         context.user_data.clear()
         return
 
@@ -123,7 +194,6 @@ async def ask_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.effective_chat.send_message(question, reply_markup=reply_markup)
 
-# Captura texto
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if "q_index" not in context.user_data:
         return
@@ -131,7 +201,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = context.user_data.get("lang", "en")
     text = update.message.text
 
-    # Pergunta de modelo
     if QUESTIONS[lang][index].startswith("📸"):
         if text.lower() in ["no", "não", "n", "нет", "nao"]:
             context.user_data["q_index"] += 1
@@ -146,7 +215,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["q_index"] += 1
     await ask_next_question(update, context)
 
-# Captura fotos
 async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("expect_photos"):
         context.user_data["photos"].append(update.message.photo[-1].file_id)
@@ -158,19 +226,16 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(f"📸 {len(context.user_data['photos'])}/4 fotos recebidas. Envie mais.")
         return
 
-# Captura vídeo
 async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     index = context.user_data.get("q_index", 0)
     context.user_data[f"answer_{index}"] = update.message.video.file_id if update.message.video else update.message.document.file_id
     context.user_data["q_index"] += 1
     await ask_next_question(update, context)
 
-# Reiniciar
 async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.clear()
     await start(update, context)
 
-# Callback dos botões
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -179,24 +244,20 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await language_choice(update, context)
 
-# Enviar respostas para grupo
 async def send_to_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
     answers = context.user_data
     lang = answers.get("lang", "en")
-    questions = QUESTIONS[lang]
+    fields = FIELDS[lang]
 
-    # Montar mensagem formatada
     message = "📩 Novo candidato via SafeJob!\n\n"
-    icons = ["👤", "🎂", "🏳️", "💼", "🌐", "📍", "⚠️", "🛂", "🚚", "📸", "🎥", "📝"]
 
-    for i, icon in enumerate(icons):
+    for i, (label,) in enumerate(fields):
         key = f"answer_{i}"
         if key in answers:
-            message += f"{icon} {answers[key]}\n"
+            message += f"{label}: {answers[key]}\n"
 
     await context.bot.send_message(chat_id=GROUP_ID, text=message)
 
-    # Enviar fotos
     for photo in answers.get("photos", []):
         await context.bot.send_photo(chat_id=GROUP_ID, photo=photo)
 
