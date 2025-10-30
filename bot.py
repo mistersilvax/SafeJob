@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import logging, os
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
@@ -13,21 +14,21 @@ logger = logging.getLogger(__name__)
 TEXTS = {
     'en': {
         'welcome_title': '?? Welcome to SafeJob!',
-        'welcome_body': 'Every job opportunity shared here is carefully reviewed by our team. We make sure all openings are safe, transparent, and real — to help you find stable work.',
+        'welcome_body': 'Every job opportunity shared here is carefully reviewed by our team. We make sure all openings are safe, transparent, and real â€” to help you find stable work.',
         'choose_lang': '?? Select your language:',
         'thanks': '? Thank you! Your information was submitted. Our team will contact you soon.'
     },
     'pt': {
         'welcome_title': '?? Bem-vindo ao SafeJob!',
-        'welcome_body': 'Todas as vagas publicadas aqui são cuidadosamente analisadas pela nossa equipe.',
+        'welcome_body': 'Todas as vagas publicadas aqui sÃ£o cuidadosamente analisadas pela nossa equipe.',
         'choose_lang': '?? Selecione seu idioma:',
-        'thanks': '? Obrigado! Seus dados foram enviados. Nossa equipe entrará em contato em breve.'
+        'thanks': '? Obrigado! Seus dados foram enviados. Nossa equipe entrarÃ¡ em contato em breve.'
     },
     'es': {
-        'welcome_title': '?? ¡Bienvenido a SafeJob!',
-        'welcome_body': 'Todas las ofertas publicadas aquí son revisadas cuidadosamente por nuestro equipo.',
+        'welcome_title': '?? Â¡Bienvenido a SafeJob!',
+        'welcome_body': 'Todas las ofertas publicadas aquÃ­ son revisadas cuidadosamente por nuestro equipo.',
         'choose_lang': '?? Selecciona tu idioma:',
-        'thanks': '? ¡Gracias! Tus datos han sido enviados. Nuestro equipo te contactará pronto.'
+        'thanks': '? Â¡Gracias! Tus datos han sido enviados. Nuestro equipo te contactarÃ¡ pronto.'
     },
     'ru': {
         'welcome_title': '?? ????? ?????????? ? SafeJob!',
@@ -50,15 +51,15 @@ sessions = {}
 def detect_lang_choice(text: str) -> str:
     t = text.lower()
     if 'english' in t or '????' in text: return 'en'
-    if 'portug' in t or '????' in text or 'português' in t: return 'pt'
-    if 'españ' in t or 'espan' in t or '????' in text: return 'es'
+    if 'portug' in t or '????' in text or 'portuguÃªs' in t: return 'pt'
+    if 'espaÃ±' in t or 'espan' in t or '????' in text: return 'es'
     if '???' in t or '????' in text: return 'ru'
     return 'en'
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
     sessions[chat_id] = {'step': None, 'lang': 'en', 'data': {}}
-    kb = [['???? English','???? Português'],['???? Español','???? ???????']]
+    kb = [['???? English','???? PortuguÃªs'],['???? EspaÃ±ol','???? ???????']]
     await update.message.reply_text(TEXTS['en']['welcome_title'])
     await update.message.reply_text(TEXTS['en']['welcome_body'])
     await update.message.reply_text(TEXTS['en']['choose_lang'], reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True))
@@ -79,8 +80,8 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         # ask first question in chosen language
         q = {
             'en':'What is your full name?',
-            'pt':'Qual é o seu nome completo?',
-            'es':'¿Cuál es tu nombre completo?',
+            'pt':'Qual Ã© o seu nome completo?',
+            'es':'Â¿CuÃ¡l es tu nombre completo?',
             'ru':'???? ?????? ????'
         }[lang]
         await update.message.reply_text(q)
@@ -97,11 +98,11 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         sess['step'] = STEPS[next_i]
         # ask next in chosen language
         prompts = {
-            'age': {'en':'How old are you?','pt':'Qual é a sua idade?','es':'¿Cuántos años tienes?','ru':'??????? ??? ????'},
-            'nationality': {'en':'What is your nationality?','pt':'Qual é a sua nacionalidade?','es':'¿Cuál es tu nacionalidad?','ru':'????? ? ??? ???????????????'},
-            'experience': {'en':'Briefly describe your work experience','pt':'Fale um pouco sobre suas experiências profissionais','es':'Describe brevemente tu experiencia laboral','ru':'?????? ??????? ??? ???? ??????'},
-            'languages': {'en':'Which languages do you speak?','pt':'Quais idiomas você fala?','es':'¿Qué idiomas hablas?','ru':'?????? ??????? ?? ?????????'},
-            'location': {'en':'Where are you currently located?','pt':'Onde você está localizado atualmente?','es':'¿Dónde te encuentras actualmente?','ru':'??? ?? ?????? ???????????'}
+            'age': {'en':'How old are you?','pt':'Qual Ã© a sua idade?','es':'Â¿CuÃ¡ntos aÃ±os tienes?','ru':'??????? ??? ????'},
+            'nationality': {'en':'What is your nationality?','pt':'Qual Ã© a sua nacionalidade?','es':'Â¿CuÃ¡l es tu nacionalidad?','ru':'????? ? ??? ???????????????'},
+            'experience': {'en':'Briefly describe your work experience','pt':'Fale um pouco sobre suas experiÃªncias profissionais','es':'Describe brevemente tu experiencia laboral','ru':'?????? ??????? ??? ???? ??????'},
+            'languages': {'en':'Which languages do you speak?','pt':'Quais idiomas vocÃª fala?','es':'Â¿QuÃ© idiomas hablas?','ru':'?????? ??????? ?? ?????????'},
+            'location': {'en':'Where are you currently located?','pt':'Onde vocÃª estÃ¡ localizado atualmente?','es':'Â¿DÃ³nde te encuentras actualmente?','ru':'??? ?? ?????? ???????????'}
         }
         await update.message.reply_text(prompts.get(sess['step'], {}).get(lang, ''))
         return
@@ -113,18 +114,18 @@ async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if sess['step'] == 'resume':
             await update.message.reply_text({
                 'en':'Please send your resume (PDF/DOC/DOCX/JPG/PNG).',
-                'pt':'Envie seu currículo (PDF/DOC/DOCX/JPG/PNG).',
-                'es':'Envíe su currículum (PDF/DOC/DOCX/JPG/PNG).',
+                'pt':'Envie seu currÃ­culo (PDF/DOC/DOCX/JPG/PNG).',
+                'es':'EnvÃ­e su currÃ­culum (PDF/DOC/DOCX/JPG/PNG).',
                 'ru':'????????? ???? ?????? (PDF/DOC/DOCX/JPG/PNG).'
             }[lang])
         else:
             # ask next question
             prompts = {
-                'fines': {'en':'Do you have any fines to pay? (Yes/No)','pt':'Você possui multas para pagar? (Sim/Não)','es':'¿Tienes multas pendientes? (Si/No)','ru':'? ??? ???? ??????? (??/???)'},
-                'work_visa': {'en':'Do you have a valid work visa? (Yes/No)','pt':'Possui visto de trabalho válido? (Sim/Não)','es':'¿Tienes visa de trabajo válida? (Si/No)','ru':'? ??? ???? ??????????? ??????? ????? (??/???)'},
-                'relocate': {'en':'Are you available to relocate? (Yes/No)','pt':'Está disponível para mudar de cidade? (Sim/Não)','es':'¿Estás disponible para reubicarte? (Si/No)','ru':'?????? ?? ?? ?????????? (??/???)'},
-                'need_passport_help': {'en':'Do you need help recovering your passport? (Yes/No)','pt':'Precisa de ajuda para recuperar seu passaporte? (Sim/Não)','es':'¿Necesitas ayuda para recuperar tu pasaporte? (Si/No)','ru':'????? ?? ??? ?????? ? ?????????????? ????????? (??/???)'},
-                'need_police_help': {'en':'Do you need police assistance? (Yes/No)','pt':'Precisa de ajuda policial? (Sim/Não)','es':'¿Necesitas ayuda policial? (Si/No)','ru':'????? ?? ??? ?????? ???????? (??/???)'}
+                'fines': {'en':'Do you have any fines to pay? (Yes/No)','pt':'VocÃª possui multas para pagar? (Sim/NÃ£o)','es':'Â¿Tienes multas pendientes? (Si/No)','ru':'? ??? ???? ??????? (??/???)'},
+                'work_visa': {'en':'Do you have a valid work visa? (Yes/No)','pt':'Possui visto de trabalho vÃ¡lido? (Sim/NÃ£o)','es':'Â¿Tienes visa de trabajo vÃ¡lida? (Si/No)','ru':'? ??? ???? ??????????? ??????? ????? (??/???)'},
+                'relocate': {'en':'Are you available to relocate? (Yes/No)','pt':'EstÃ¡ disponÃ­vel para mudar de cidade? (Sim/NÃ£o)','es':'Â¿EstÃ¡s disponible para reubicarte? (Si/No)','ru':'?????? ?? ?? ?????????? (??/???)'},
+                'need_passport_help': {'en':'Do you need help recovering your passport? (Yes/No)','pt':'Precisa de ajuda para recuperar seu passaporte? (Sim/NÃ£o)','es':'Â¿Necesitas ayuda para recuperar tu pasaporte? (Si/No)','ru':'????? ?? ??? ?????? ? ?????????????? ????????? (??/???)'},
+                'need_police_help': {'en':'Do you need police assistance? (Yes/No)','pt':'Precisa de ajuda policial? (Sim/NÃ£o)','es':'Â¿Necesitas ayuda policial? (Si/No)','ru':'????? ?? ??? ?????? ???????? (??/???)'}
             }
             await update.message.reply_text(prompts.get(step, {}).get(lang, ''))
         return
@@ -172,8 +173,8 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sess['step'] = 'video'
     await update.message.reply_text({
         'en':'Now send a short video presentation (MP4).',
-        'pt':'Agora envie seu vídeo de apresentação (MP4).',
-        'es':'Ahora envía un video de presentación (MP4).',
+        'pt':'Agora envie seu vÃ­deo de apresentaÃ§Ã£o (MP4).',
+        'es':'Ahora envÃ­a un video de presentaciÃ³n (MP4).',
         'ru':'?????? ????????? ???????? ?????-??????????? (MP4).'
     }[sess['lang']])
 
@@ -197,8 +198,8 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
     sess['step'] = 'notes'
     await update.message.reply_text({
         'en':'Any additional notes?',
-        'pt':'Deseja adicionar alguma observação?',
-        'es':'¿Deseas añadir alguna observación?',
+        'pt':'Deseja adicionar alguma observaÃ§Ã£o?',
+        'es':'Â¿Deseas aÃ±adir alguna observaciÃ³n?',
         'ru':'?????? ???????? ?????-???? ????????'
     }[sess['lang']])
 
@@ -234,3 +235,4 @@ if __name__ == '__main__':
     app.add_handler(MessageHandler(filters.VIDEO, handle_video))
     print("Bot started...")
     app.run_polling()
+
