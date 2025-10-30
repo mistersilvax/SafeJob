@@ -82,7 +82,10 @@ QUESTIONS = {
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [[InlineKeyboardButton(name, callback_data=code)] for code, name in LANGUAGES.items()]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("🌐 Select your language / Selecione seu idioma / Seleccione su idioma / Выберите язык:", reply_markup=reply_markup)
+    await update.message.reply_text(
+        "🌐 Select your language / Selecione seu idioma / Seleccione su idioma / Выберите язык:",
+        reply_markup=reply_markup
+    )
 
 # Escolha de idioma
 async def language_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -128,7 +131,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         else:
             context.user_data["expect_photos"] = True
-            await update.effective_chat.send_message("📸 Please send at least 4 photos / Envie pelo menos 4 fotos / Envie al menos 4 fotos / Отправьте минимум 4 фото")
+            await update.effective_chat.send_message(
+                "📸 Please send at least 4 photos / Envie pelo menos 4 fotos / Envie al menos 4 fotos / Отправьте минимум 4 фото"
+            )
             return
 
     # Armazena resposta
@@ -195,7 +200,8 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
-    video_filter = filters.VIDEO | (filters.Document & filters.Document.MimeType("video/mp4"))
+    # Corrigido: vídeo e documentos mp4
+    video_filter = filters.VIDEO | filters.Document.MimeType("video/mp4")
     app.add_handler(MessageHandler(video_filter, handle_video))
 
     app.run_polling()
