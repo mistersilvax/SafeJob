@@ -1,238 +1,155 @@
-# -*- coding: utf-8 -*-
-import logging, os
-from telegram import Update, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-from datetime import datetime
-import config
-from models import Candidate, session
-from utils import save_resume, save_video
+import logging
+from telegram import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    Update
+)
+from telegram.ext import (
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+    MessageHandler,
+    filters
+)
+from models import Candidate, session  # seu models.py continua igual
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# === CONFIGURAÇÕES ===
+TOKEN = "SEU_TOKEN_AQUI"
 
-# Multilingual texts (short)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+)
+
+# === TEXTOS EM 4 IDIOMAS ===
 TEXTS = {
-    'en': {
-        'welcome_title': '?? Welcome to SafeJob!',
-        'welcome_body': 'Every job opportunity shared here is carefully reviewed by our team. We make sure all openings are safe, transparent, and real — to help you find stable work.',
-        'choose_lang': '?? Select your language:',
-        'thanks': '? Thank you! Your information was submitted. Our team will contact you soon.'
+    "pt": {
+        "welcome": "👋 Bem-vindo ao *SafeJob*! 💼\nEncontre oportunidades incríveis de trabalho em Bavet e região.",
+        "ask_name": "🧾 Por favor, digite seu *nome completo*:",
+        "ask_age": "🎂 Informe sua *idade*:",
+        "ask_experience": "💼 Conte um pouco sobre sua *experiência profissional*: ",
+        "ask_contact": "📞 Envie seu *número de contato* ou *Telegram*:",
+        "saved": "✅ Suas informações foram salvas com sucesso! Em breve entraremos em contato. 🤝",
+        "restart": "🔄 Reiniciar chat"
     },
-    'pt': {
-        'welcome_title': '?? Bem-vindo ao SafeJob!',
-        'welcome_body': 'Todas as vagas publicadas aqui são cuidadosamente analisadas pela nossa equipe.',
-        'choose_lang': '?? Selecione seu idioma:',
-        'thanks': '? Obrigado! Seus dados foram enviados. Nossa equipe entrará em contato em breve.'
+    "en": {
+        "welcome": "👋 Welcome to *SafeJob*! 💼\nFind amazing job opportunities in Bavet and nearby areas.",
+        "ask_name": "🧾 Please enter your *full name*: ",
+        "ask_age": "🎂 Enter your *age*: ",
+        "ask_experience": "💼 Tell us about your *work experience*: ",
+        "ask_contact": "📞 Send your *contact number* or *Telegram username*: ",
+        "saved": "✅ Your information has been saved successfully! We'll contact you soon. 🤝",
+        "restart": "🔄 Restart chat"
     },
-    'es': {
-        'welcome_title': '?? ¡Bienvenido a SafeJob!',
-        'welcome_body': 'Todas las ofertas publicadas aquí son revisadas cuidadosamente por nuestro equipo.',
-        'choose_lang': '?? Selecciona tu idioma:',
-        'thanks': '? ¡Gracias! Tus datos han sido enviados. Nuestro equipo te contactará pronto.'
+    "es": {
+        "welcome": "👋 ¡Bienvenido a *SafeJob*! 💼\nEncuentra increíbles oportunidades de trabajo en Bavet y alrededores.",
+        "ask_name": "🧾 Por favor, escribe tu *nombre completo*: ",
+        "ask_age": "🎂 Indica tu *edad*: ",
+        "ask_experience": "💼 Cuéntanos sobre tu *experiencia laboral*: ",
+        "ask_contact": "📞 Envíanos tu *número de contacto* o *usuario de Telegram*: ",
+        "saved": "✅ ¡Tu información ha sido guardada con éxito! Te contactaremos pronto. 🤝",
+        "restart": "🔄 Reiniciar chat"
     },
-    'ru': {
-        'welcome_title': '?? ????? ?????????? ? SafeJob!',
-        'welcome_body': '??? ????????, ??????????? ?????, ????????? ??????????? ????? ????????.',
-        'choose_lang': '?? ???????? ????:',
-        'thanks': '? ???????! ???? ?????? ??????????. ???? ??????? ???????? ? ????.'
+    "ru": {
+        "welcome": "👋 Добро пожаловать в *SafeJob*! 💼\nНайдите отличные рабочие возможности в Бавете и поблизости.",
+        "ask_name": "🧾 Пожалуйста, введите ваше *полное имя*: ",
+        "ask_age": "🎂 Укажите ваш *возраст*: ",
+        "ask_experience": "💼 Расскажите о вашем *опыте работы*: ",
+        "ask_contact": "📞 Отправьте ваш *контактный номер* или *Telegram*: ",
+        "saved": "✅ Ваша информация успешно сохранена! Мы свяжемся с вами в ближайшее время. 🤝",
+        "restart": "🔄 Перезапустить чат"
     }
 }
 
-# Steps
-STEPS = [
-    'name','age','nationality','experience','languages','location',
-    'fines','work_visa','relocate','need_passport_help','need_police_help',
-    'resume','video','notes'
-]
-
-# in-memory session (small scale)
-sessions = {}
-
-def detect_lang_choice(text: str) -> str:
-    t = text.lower()
-    if 'english' in t or '????' in text: return 'en'
-    if 'portug' in t or '????' in text or 'português' in t: return 'pt'
-    if 'españ' in t or 'espan' in t or '????' in text: return 'es'
-    if '???' in t or '????' in text: return 'ru'
-    return 'en'
-
+# === ESCOLHA DE IDIOMA ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    sessions[chat_id] = {'step': None, 'lang': 'en', 'data': {}}
-    kb = [['???? English','???? Português'],['???? Español','???? ???????']]
-    await update.message.reply_text(TEXTS['en']['welcome_title'])
-    await update.message.reply_text(TEXTS['en']['welcome_body'])
-    await update.message.reply_text(TEXTS['en']['choose_lang'], reply_markup=ReplyKeyboardMarkup(kb, one_time_keyboard=True, resize_keyboard=True))
+    keyboard = [
+        [
+            InlineKeyboardButton("🇧🇷 Português", callback_data="lang_pt"),
+            InlineKeyboardButton("🇺🇸 English", callback_data="lang_en")
+        ],
+        [
+            InlineKeyboardButton("🇪🇸 Español", callback_data="lang_es"),
+            InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru")
+        ]
+    ]
+    await update.message.reply_text(
+        "🌐 *Escolha seu idioma / Choose your language / Elige tu idioma / Выберите язык:*",
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
-async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    text = update.message.text
-    sess = sessions.get(chat_id)
-    if not sess:
-        await start(update, context)
+# === FUNÇÃO DE REINÍCIO ===
+async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    await start(query, context)
+
+# === PROCESSO DE CADASTRO ===
+async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    lang = query.data.split("_")[1]
+    context.user_data["lang"] = lang
+    await query.edit_message_text(
+        TEXTS[lang]["welcome"],
+        parse_mode="Markdown",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton(TEXTS[lang]["restart"], callback_data="restart")]
+        ])
+    )
+    await query.message.reply_text(TEXTS[lang]["ask_name"])
+
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = context.user_data.get("lang", "pt")
+
+    if "name" not in context.user_data:
+        context.user_data["name"] = update.message.text
+        await update.message.reply_text(TEXTS[lang]["ask_age"])
         return
 
-    # language chooser step
-    if sess['step'] is None:
-        lang = detect_lang_choice(text)
-        sess['lang'] = lang
-        sess['step'] = STEPS[0]
-        # ask first question in chosen language
-        q = {
-            'en':'What is your full name?',
-            'pt':'Qual é o seu nome completo?',
-            'es':'¿Cuál es tu nombre completo?',
-            'ru':'???? ?????? ????'
-        }[lang]
-        await update.message.reply_text(q)
+    if "age" not in context.user_data:
+        context.user_data["age"] = update.message.text
+        await update.message.reply_text(TEXTS[lang]["ask_experience"])
         return
 
-    step = sess['step']
-    lang = sess['lang']
-    data = sess['data']
-
-    # store simple text answers
-    if step in ['name','age','nationality','experience','languages','location']:
-        data[step] = text
-        next_i = STEPS.index(step) + 1
-        sess['step'] = STEPS[next_i]
-        # ask next in chosen language
-        prompts = {
-            'age': {'en':'How old are you?','pt':'Qual é a sua idade?','es':'¿Cuántos años tienes?','ru':'??????? ??? ????'},
-            'nationality': {'en':'What is your nationality?','pt':'Qual é a sua nacionalidade?','es':'¿Cuál es tu nacionalidad?','ru':'????? ? ??? ???????????????'},
-            'experience': {'en':'Briefly describe your work experience','pt':'Fale um pouco sobre suas experiências profissionais','es':'Describe brevemente tu experiencia laboral','ru':'?????? ??????? ??? ???? ??????'},
-            'languages': {'en':'Which languages do you speak?','pt':'Quais idiomas você fala?','es':'¿Qué idiomas hablas?','ru':'?????? ??????? ?? ?????????'},
-            'location': {'en':'Where are you currently located?','pt':'Onde você está localizado atualmente?','es':'¿Dónde te encuentras actualmente?','ru':'??? ?? ?????? ???????????'}
-        }
-        await update.message.reply_text(prompts.get(sess['step'], {}).get(lang, ''))
+    if "experience" not in context.user_data:
+        context.user_data["experience"] = update.message.text
+        await update.message.reply_text(TEXTS[lang]["ask_contact"])
         return
 
-    if step in ['fines','work_visa','relocate','need_passport_help','need_police_help']:
-        data[step] = text
-        next_i = STEPS.index(step) + 1
-        sess['step'] = STEPS[next_i]
-        if sess['step'] == 'resume':
-            await update.message.reply_text({
-                'en':'Please send your resume (PDF/DOC/DOCX/JPG/PNG).',
-                'pt':'Envie seu currículo (PDF/DOC/DOCX/JPG/PNG).',
-                'es':'Envíe su currículum (PDF/DOC/DOCX/JPG/PNG).',
-                'ru':'????????? ???? ?????? (PDF/DOC/DOCX/JPG/PNG).'
-            }[lang])
-        else:
-            # ask next question
-            prompts = {
-                'fines': {'en':'Do you have any fines to pay? (Yes/No)','pt':'Você possui multas para pagar? (Sim/Não)','es':'¿Tienes multas pendientes? (Si/No)','ru':'? ??? ???? ??????? (??/???)'},
-                'work_visa': {'en':'Do you have a valid work visa? (Yes/No)','pt':'Possui visto de trabalho válido? (Sim/Não)','es':'¿Tienes visa de trabajo válida? (Si/No)','ru':'? ??? ???? ??????????? ??????? ????? (??/???)'},
-                'relocate': {'en':'Are you available to relocate? (Yes/No)','pt':'Está disponível para mudar de cidade? (Sim/Não)','es':'¿Estás disponible para reubicarte? (Si/No)','ru':'?????? ?? ?? ?????????? (??/???)'},
-                'need_passport_help': {'en':'Do you need help recovering your passport? (Yes/No)','pt':'Precisa de ajuda para recuperar seu passaporte? (Sim/Não)','es':'¿Necesitas ayuda para recuperar tu pasaporte? (Si/No)','ru':'????? ?? ??? ?????? ? ?????????????? ????????? (??/???)'},
-                'need_police_help': {'en':'Do you need police assistance? (Yes/No)','pt':'Precisa de ajuda policial? (Sim/Não)','es':'¿Necesitas ayuda policial? (Si/No)','ru':'????? ?? ??? ?????? ???????? (??/???)'}
-            }
-            await update.message.reply_text(prompts.get(step, {}).get(lang, ''))
-        return
+    if "contact" not in context.user_data:
+        context.user_data["contact"] = update.message.text
 
-    if step == 'notes':
-        data['notes'] = text
-        # finalize: save to DB and notify staff
-        data['lang'] = lang
-        data['created_at'] = datetime.utcnow().isoformat()
-        # Map only fields in model
-        cand_kwargs = {k: v for k, v in data.items() if k in Candidate.__table__.columns.keys()}
-        candidate = Candidate(**cand_kwargs)
+        # salvar no banco
+        candidate = Candidate(
+            name=context.user_data["name"],
+            age=context.user_data["age"],
+            experience=context.user_data["experience"],
+            contact=context.user_data["contact"]
+        )
         session.add(candidate)
         session.commit()
 
-        await notify_staff(context, data)
-        link = config.PUBLIC_JOBS_GROUP_LINK
-        await update.message.reply_text(TEXTS[lang]['thanks'] + f"\n\nCheck open positions: {link}")
-        # clear session
-        sess['step'] = None
-        sess['data'] = {}
-        return
+        await update.message.reply_text(
+            TEXTS[lang]["saved"],
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(TEXTS[lang]["restart"], callback_data="restart")]
+            ])
+        )
+        context.user_data.clear()
 
-    # fallback
-    await update.message.reply_text("Please follow the instructions or send /start to begin.")
+# === MAIN ===
+def main():
+    app = ApplicationBuilder().token(TOKEN).build()
 
-async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    sess = sessions.get(chat_id)
-    if not sess:
-        await start(update, context); return
-    step = sess['step']
-    if step != 'resume':
-        await update.message.reply_text("Unexpected file. Please follow the instructions or send /start.")
-        return
-    doc = update.message.document
-    if not doc:
-        await update.message.reply_text("No document found.")
-        return
-    # download
-    file = await context.bot.get_file(doc.file_id)
-    content = await file.download_as_bytearray()
-    path = save_resume(doc.file_name or "resume", content)
-    sess['data']['resume_path'] = path
-    sess['step'] = 'video'
-    await update.message.reply_text({
-        'en':'Now send a short video presentation (MP4).',
-        'pt':'Agora envie seu vídeo de apresentação (MP4).',
-        'es':'Ahora envía un video de presentación (MP4).',
-        'ru':'?????? ????????? ???????? ?????-??????????? (MP4).'
-    }[sess['lang']])
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(restart, pattern="restart"))
+    app.add_handler(CallbackQueryHandler(button, pattern="lang_"))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = update.effective_chat.id
-    sess = sessions.get(chat_id)
-    if not sess:
-        await start(update, context); return
-    step = sess['step']
-    if step != 'video':
-        await update.message.reply_text("Unexpected video. Please follow the instructions or send /start.")
-        return
-    video = update.message.video
-    if not video:
-        await update.message.reply_text("No video found.")
-        return
-    file = await context.bot.get_file(video.file_id)
-    content = await file.download_as_bytearray()
-    path = save_video(video.file_name or "video.mp4", content)
-    sess['data']['video_path'] = path
-    sess['step'] = 'notes'
-    await update.message.reply_text({
-        'en':'Any additional notes?',
-        'pt':'Deseja adicionar alguma observação?',
-        'es':'¿Deseas añadir alguna observación?',
-        'ru':'?????? ???????? ?????-???? ????????'
-    }[sess['lang']])
-
-async def notify_staff(context: ContextTypes.DEFAULT_TYPE, data: dict):
-    msg = (f"?? *New candidate via SafeJob!*\\n\\n"
-           f"?? Name: {data.get('name')}\\n"
-           f"?? Age: {data.get('age')}\\n"
-           f"??? Nationality: {data.get('nationality')}\\n"
-           f"?? Experience: {data.get('experience')}\\n"
-           f"?? Languages: {data.get('languages')}\\n"
-           f"?? Location: {data.get('location')}\\n"
-           f"?? Fines: {data.get('fines')}\\n"
-           f"?? Work visa: {data.get('work_visa')}\\n"
-           f"?? Relocate: {data.get('relocate')}\\n"
-           f"?? Need passport help: {data.get('need_passport_help')}\\n"
-           f"?? Need police help: {data.get('need_police_help')}\\n"
-           f"?? Notes: {data.get('notes')}")
-    try:
-        await context.bot.send_message(chat_id=config.ADMIN_GROUP_ID, text=msg, parse_mode='Markdown')
-        if data.get('resume_path'):
-            await context.bot.send_document(chat_id=config.ADMIN_GROUP_ID, document=open(data['resume_path'],'rb'))
-        if data.get('video_path'):
-            await context.bot.send_video(chat_id=config.ADMIN_GROUP_ID, video=open(data['video_path'],'rb'))
-    except Exception as e:
-        logger.exception("Failed to notify staff: %s", e)
-
-if __name__ == '__main__':
-    token = os.getenv("TELEGRAM_BOT_TOKEN", config.TELEGRAM_BOT_TOKEN)
-    app = ApplicationBuilder().token(token).build()
-    app.add_handler(CommandHandler('start', start))
-    app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_text))
-    app.add_handler(MessageHandler(filters.Document.ALL, handle_document))
-    app.add_handler(MessageHandler(filters.VIDEO, handle_video))
-    print("Bot started...")
     app.run_polling()
+
+if __name__ == "__main__":
+    main()
 
