@@ -14,7 +14,7 @@ from models import Candidate, session  # seu models.py continua igual
 
 # === CONFIG ===
 # Troque pelo token real ou use variável de ambiente
-TOKEN = os.environ.get("TOKEN", "SEU_TOKEN_AQUI")
+TOKEN = os.environ.get("TOKEN", "8200201915:AAHxipR8nov2PSAJ3oJLIZDqplOnxhHYRUc")
 # Grupo para envio das fichas (conforme informado)
 GROUP_ID = -5014344988
 
@@ -385,5 +385,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
