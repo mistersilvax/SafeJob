@@ -1,29 +1,48 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaVideo
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
+# bot_safejob_final.py
+# -*- coding: utf-8 -*-
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto,
+    InputMediaVideo,
+)
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    CallbackQueryHandler,
+    ContextTypes,
+    filters,
+)
 
 # ======================
 # CONFIGURAÇÕES
 # ======================
-TOKEN = "8200201915:AAHxipR8nov2PSAJ3oJLIZDqplOnxhHYRUc"
-GROUP_ID = "-5014344988"
+TOKEN = "8200201915:AAHxipR8nov2PSAJ3oJLIZDqplOnxhHYRUc"            # <-- coloque seu token aqui
+GROUP_ID = int("-5014344988")      # <-- grupo destino (inteiro)
 
 LANGUAGES = {
     "en": "🇬🇧 English",
     "pt": "🇧🇷 Português",
     "es": "🇪🇸 Español",
-    "ru": "🇷🇺 Русский"
+    "ru": "🇷🇺 Русский",
 }
 
 SECURITY_MSG = {
-    "en": "🔒 Welcome to SafeJob!\nEvery job opportunity shared here is carefully reviewed by our team.\nPlease fill your information carefully so our support team can find the best position for you.",
-    "pt": "🔒 Bem-vindo ao SafeJob!\nTodas as vagas publicadas aqui são cuidadosamente analisadas pela nossa equipe.\nPor favor, preencha suas informações com cuidado para que a equipe encontre a melhor vaga para você.",
-    "es": "🔒 ¡Bienvenido a SafeJob!\nTodas las ofertas publicadas aquí son revisadas cuidadosamente por nuestro equipo.\nPor favor, completa tu información con cuidado para que el equipo encuentre la mejor vacante para ti.",
-    "ru": "🔒 Добро пожаловать в SafeJob!\nВсе вакансии тщательно проверяются нашей командой.\nПожалуйста, заполняйте информацию внимательно, чтобы команда могла подобрать лучшую работу для вас."
+    "en": "🔒 Welcome to SafeJob!\nEvery job opportunity shared here is carefully reviewed by our team.\nPlease fill in your information carefully so our team can find the best position for you.",
+    "pt": "🔒 Bem-vindo ao SafeJob!\nTodas as vagas publicadas aqui são cuidadosamente analisadas pela nossa equipe.\nPor favor, preencha suas informações com atenção para que possamos encontrar a melhor vaga para você.",
+    "es": "🔒 ¡Bienvenido a SafeJob!\nTodas las vacantes aquí son revisadas cuidadosamente por nuestro equipo.\nPor favor, completa tu información con atención para que podamos encontrar el mejor puesto para ti.",
+    "ru": "🔒 Добро пожаловать в SafeJob!\nВсе вакансии тщательно проверяются нашей командой.\nПожалуйста, заполняйте данные внимательно, чтобы мы могли подобрать лучшую вакансию для вас.",
 }
 
-# ======================
-# PERGUNTAS COM EMOJIS
-# ======================
+FINAL_MSG = {
+    "en": "✅ Thank you! Our team will review your information and contact you soon. 🔎",
+    "pt": "✅ Obrigado! Nossa equipe irá analisar suas informações e entrará em contato em breve. 🔎",
+    "es": "✅ ¡Gracias! Nuestro equipo revisará tu información y se pondrá en contacto pronto. 🔎",
+    "ru": "✅ Спасибо! Наша команда проверит вашу информацию и свяжется с вами в ближайшее время. 🔎",
+}
+
 QUESTIONS = {
     "en": [
         "👤 What's your full name?",
@@ -38,7 +57,7 @@ QUESTIONS = {
         "📸 Are you a model and want to provide photos? (Yes/No) – optional",
         "🎥 Send a presentation video (up to 1 minute)",
         "📱 What is your Telegram username or number for contact?",
-        "📝 Any additional notes?"
+        "📝 Any additional notes?",
     ],
     "pt": [
         "👤 Qual é o seu nome completo?",
@@ -53,7 +72,7 @@ QUESTIONS = {
         "📸 Você é modelo e deseja enviar fotos? (Sim/Não) – opcional",
         "🎥 Envie um vídeo de apresentação (até 1 minuto)",
         "📱 Qual o seu Telegram para contato? (adicione @ ou número)",
-        "📝 Alguma observação adicional?"
+        "📝 Alguma observação adicional?",
     ],
     "es": [
         "👤 ¿Cuál es tu nombre completo?",
@@ -68,7 +87,7 @@ QUESTIONS = {
         "📸 ¿Eres modelo y deseas enviar fotos? (Sí/No) – opcional",
         "🎥 Envía un video de presentación (hasta 1 minuto)",
         "📱 ¿Cuál es tu Telegram de contacto? (con @ o número)",
-        "📝 ¿Alguna observación adicional?"
+        "📝 ¿Alguna observación adicional?",
     ],
     "ru": [
         "👤 Как вас зовут?",
@@ -83,164 +102,321 @@ QUESTIONS = {
         "📸 Вы модель и хотите отправить фото? (Да/Нет) – опционально",
         "🎥 Отправьте презентационное видео (до 1 мин)",
         "📱 Ваш Telegram для связи? (@ или номер)",
-        "📝 Дополнительные заметки?"
-    ]
+        "📝 Дополнительные заметки?",
+    ],
 }
 
-# ======================
-# START COMMAND
-# ======================
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [[InlineKeyboardButton(name, callback_data=code)] for code, name in LANGUAGES.items()]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "🌐 Select your language / Selecione seu idioma / Seleccione su idioma / Выберите язык:",
-        reply_markup=reply_markup
-    )
+# rótulos para montar a mensagem final (mantemos PT-like labels conforme exemplo)
+FIELDS_LABELS = {
+    "pt": [
+        "👤 Nome",
+        "🎂 Idade",
+        "🏳️ Nacionalidade",
+        "💼 Experiência",
+        "🌐 Idiomas",
+        "📍 Localização",
+        "⚠️ Multas",
+        "🛂 Visto de trabalho válido",
+        "🚚 Disponível para mudar de cidade",
+        "📸 Modelo (enviou fotos?)",
+        "🎥 Vídeo de apresentação",
+        "📱 Telegram",
+        "📝 Observações",
+    ],
+    "en": [
+        "👤 Name",
+        "🎂 Age",
+        "🏳️ Nationality",
+        "💼 Experience",
+        "🌐 Languages",
+        "📍 Location",
+        "⚠️ Fines",
+        "🛂 Valid work visa",
+        "🚚 Available to relocate",
+        "📸 Model (sent photos?)",
+        "🎥 Presentation video",
+        "📱 Telegram",
+        "📝 Notes",
+    ],
+    "es": [
+        "👤 Nombre",
+        "🎂 Edad",
+        "🏳️ Nacionalidad",
+        "💼 Experiencia",
+        "🌐 Idiomas",
+        "📍 Ubicación",
+        "⚠️ Multas",
+        "🛂 Visa de trabajo válida",
+        "🚚 Disponible para mudarse",
+        "📸 Modelo (envió fotos?)",
+        "🎥 Video de presentación",
+        "📱 Telegram",
+        "📝 Observaciones",
+    ],
+    "ru": [
+        "👤 Имя",
+        "🎂 Возраст",
+        "🏳️ Национальность",
+        "💼 Опыт",
+        "🌐 Языки",
+        "📍 Местоположение",
+        "⚠️ Штрафы",
+        "🛂 Рабочая виза",
+        "🚚 Готов к переезду",
+        "📸 Модель (фото?)",
+        "🎥 Видео",
+        "📱 Telegram",
+        "📝 Примечания",
+    ],
+}
+
+
+# Helper para detectar resposta negativa
+def is_negative_answer(text: str) -> bool:
+    if not text:
+        return False
+    t = text.strip().lower()
+    return t in {"no", "n", "não", "nao", "нет"}
+
 
 # ======================
-# LINGUAGEM ESCOLHIDA
+# HANDLERS DO BOT
 # ======================
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [[InlineKeyboardButton(name, callback_data=code)] for code, name in LANGUAGES.items()]
+    await update.message.reply_text(
+        "🌐 Select your language / Selecione seu idioma / Seleccione su idioma / Выберите язык:",
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
+
+
 async def language_choice(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     lang = query.data
+    # init user state
+    context.user_data.clear()
     context.user_data["lang"] = lang
     context.user_data["q_index"] = 0
-    context.user_data["photos"] = []
+    context.user_data["answers"] = {}   # stores answers by index: "answer_0"...
+    context.user_data["photos"] = []    # list of file_ids
+    context.user_data["video"] = None   # file_id
+    context.user_data["expect_photos"] = False
+
+    # Send security notice and first question
     await query.message.reply_text(SECURITY_MSG[lang])
     await ask_next_question(update, context)
 
-# ======================
-# FAZ A PRÓXIMA PERGUNTA
-# ======================
-async def ask_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = context.user_data.get("lang", "en")
-    index = context.user_data.get("q_index", 0)
-    questions = QUESTIONS[lang]
 
-    if index >= len(questions):
+async def ask_next_question(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = context.user_data.get("lang", "pt")
+    idx = context.user_data.get("q_index", 0)
+    questions = QUESTIONS[lang]
+    if idx >= len(questions):
+        # finalize
         await send_to_group(update, context)
+        # send thank you to user
+        await update.effective_chat.send_message(FINAL_MSG[lang])
         context.user_data.clear()
         return
-
-    question = questions[index]
+    # ask current question
+    question = questions[idx]
     keyboard = [[InlineKeyboardButton("🔄 Restart / Reiniciar / Перезапустить", callback_data="restart")]]
     await update.effective_chat.send_message(question, reply_markup=InlineKeyboardMarkup(keyboard))
 
-# ======================
-# TRATA RESPOSTAS DE TEXTO
-# ======================
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+async def handle_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if "q_index" not in context.user_data:
         return
-    index = context.user_data["q_index"]
-    lang = context.user_data.get("lang", "en")
-    text = update.message.text
+    lang = context.user_data.get("lang", "pt")
+    idx = context.user_data["q_index"]
+    text = (update.message.text or "").strip()
 
-    if QUESTIONS[lang][index].startswith("📸"):
-        if text.lower() in ["no", "não", "n", "нет"]:
-            context.user_data["q_index"] += 1
-            await ask_next_question(update, context)
-            return
-        else:
-            context.user_data["expect_photos"] = True
-            await update.message.reply_text("📸 Please send at least 4 photos.")
-            return
-
-    context.user_data[f"answer_{index}"] = text
-    context.user_data["q_index"] += 1
-    await ask_next_question(update, context)
-
-# ======================
-# TRATA FOTOS
-# ======================
-async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # If expecting photos, ignore text and ask to send photos
     if context.user_data.get("expect_photos"):
-        context.user_data["photos"].append(update.message.photo[-1].file_id)
-        if len(context.user_data["photos"]) >= 4:
-            context.user_data["q_index"] += 1
-            context.user_data.pop("expect_photos")
-            await ask_next_question(update, context)
-        else:
-            await update.message.reply_text(f"📸 {len(context.user_data['photos'])}/4 received. Please send more.")
+        await update.message.reply_text({"pt": "📸 Por favor envie fotos (mínimo 4).", "en": "📸 Please send photos (minimum 4)."}[lang])
         return
 
-# ======================
-# TRATA VÍDEO
-# ======================
-async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    index = context.user_data.get("q_index", 0)
-    video = update.message.video or update.message.document
-    context.user_data["video"] = video.file_id
-    context.user_data["q_index"] += 1
+    # If current question is the model question (index 9)
+    if QUESTIONS[lang][idx].startswith("📸"):
+        if is_negative_answer(text):
+            # store "No" and skip to next
+            context.user_data["answers"][f"answer_{idx}"] = "Não" if lang == "pt" else "No"
+            context.user_data["q_index"] = idx + 1
+            await ask_next_question(update, context)
+            return
+        else:
+            # assume yes -> expect photos now
+            context.user_data["answers"][f"answer_{idx}"] = "Sim" if lang == "pt" else "Yes"
+            context.user_data["expect_photos"] = True
+            await update.message.reply_text({"pt": "📸 Envie pelo menos 4 fotos agora.", "en": "📸 Please send at least 4 photos now."}[lang])
+            return
+
+    # Save normal answer
+    context.user_data["answers"][f"answer_{idx}"] = text or "-"
+    context.user_data["q_index"] = idx + 1
     await ask_next_question(update, context)
 
-# ======================
-# CALLBACKS E REINÍCIO
-# ======================
-async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.clear()
-    await start(update, context)
 
-async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if "q_index" not in context.user_data:
+        return
+    lang = context.user_data.get("lang", "pt")
+    if not context.user_data.get("expect_photos"):
+        await update.message.reply_text({"pt": "📷 Para enviar fotos como modelo, responda 'Sim' na pergunta de modelo.", "en": "📷 To send photos as a model, answer 'Yes' to the model question."}[lang])
+        return
+    file_id = update.message.photo[-1].file_id
+    context.user_data["photos"].append(file_id)
+    count = len(context.user_data["photos"])
+    if count < 4:
+        await update.message.reply_text({"pt": f"📸 {count}/4 recebidas. Envie mais {4 - count}.", "en": f"📸 {count}/4 received. Send {4 - count} more."}[lang])
+        return
+    # enough photos collected
+    context.user_data["expect_photos"] = False
+    # mark that model question answer stored already; advance
+    context.user_data["q_index"] = context.user_data.get("q_index", 0) + 1
+    await update.message.reply_text({"pt": "✅ Fotos recebidas. Agora envie seu vídeo (se tiver).", "en": "✅ Photos received. Now send your video (if you have one)."}[lang])
+    await ask_next_question(update, context)
+
+
+async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if "q_index" not in context.user_data:
+        return
+    file_id = None
+    if update.message.video:
+        file_id = update.message.video.file_id
+    elif update.message.document and update.message.document.mime_type and update.message.document.mime_type.startswith("video"):
+        file_id = update.message.document.file_id
+    if not file_id:
+        lang = context.user_data.get("lang", "pt")
+        await update.message.reply_text({"pt": "🎥 Por favor envie um arquivo de vídeo válido.", "en": "🎥 Please send a valid video file."}[lang])
+        return
+    context.user_data["video"] = file_id
+    # store a marker in answers for the video question slot if you want
+    # advance to next question
+    context.user_data["q_index"] = context.user_data.get("q_index", 0) + 1
+    await ask_next_question(update, context)
+
+
+async def callback_router(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    data = update.callback_query.data
+    if data == "restart":
+        await handle_restart(update, context)
+    elif data in LANGUAGES:
+        await language_choice(update, context)
+    else:
+        await update.callback_query.answer()
+
+
+async def handle_restart(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    if query.data == "restart":
-        await restart(update, context)
-    else:
-        await language_choice(update, context)
+    context.user_data.clear()
+    await query.edit_message_text("🌐 Select your language / Selecione seu idioma:", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(name, callback_data=code)] for code, name in LANGUAGES.items()]))
+
 
 # ======================
-# ENVIA AS INFORMAÇÕES PARA O GRUPO
+# ENVIO AGRUPADO (texto + mídia juntos)
 # ======================
+
+def build_final_text(data: dict, lang: str) -> str:
+    labels = FIELDS_LABELS.get(lang, FIELDS_LABELS["pt"])
+    # Build list of values for indices 0..12
+    lines = ["📩 Novo candidato via SafeJob!", ""]
+    for i, label in enumerate(labels):
+        key = f"answer_{i}"
+        value = data.get("answers", {}).get(key)
+        # for the model and video fields, show yes/no or presence
+        if i == 9:
+            # model field: if photos exist -> "Sim" else check stored answer
+            if data.get("photos"):
+                val = "Sim" if lang == "pt" else "Yes"
+            else:
+                val = data.get("answers", {}).get(key, "Não" if lang == "pt" else "No")
+            value = val
+        elif i == 10:
+            # video field: show "Sim" if video present else the stored answer or "-"
+            value = "Sim" if data.get("video") else (data.get("answers", {}).get(key, "-"))
+        elif value is None:
+            value = data.get("answers", {}).get(key, "-")
+        lines.append(f"{label}: {value}")
+    return "\n".join(lines)
+
+
 async def send_to_group(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    answers = context.user_data
-    lang = answers.get("lang", "pt")
+    data = {
+        "answers": context.user_data.get("answers", {}),
+        "photos": context.user_data.get("photos", []),
+        "video": context.user_data.get("video"),
+        "lang": context.user_data.get("lang", "pt"),
+    }
+    lang = data["lang"]
+    final_text = build_final_text(data, lang)
 
-    msg = (
-        "📩 Novo candidato via SafeJob!\n\n"
-        f"👤 Nome: {answers.get('answer_0', '-')}\n"
-        f"🎂 Idade: {answers.get('answer_1', '-')}\n"
-        f"🏳️ Nacionalidade: {answers.get('answer_2', '-')}\n"
-        f"💼 Experiência: {answers.get('answer_3', '-')}\n"
-        f"🌐 Idiomas: {answers.get('answer_4', '-')}\n"
-        f"📍 Localização: {answers.get('answer_5', '-')}\n"
-        f"⚠️ Multas: {answers.get('answer_6', '-')}\n"
-        f"🛂 Visto de trabalho válido: {answers.get('answer_7', '-')}\n"
-        f"🚚 Disponível para mudar de cidade: {answers.get('answer_8', '-')}\n"
-        f"📱 Telegram: {answers.get('answer_11', '-')}\n"
-        f"📝 Observações: {answers.get('answer_12', '-')}"
-    )
+    photos = data.get("photos", [])[:]  # copy
+    video_id = data.get("video")
 
-    await context.bot.send_message(chat_id=GROUP_ID, text=msg)
+    # Build media list: prefer putting the video as the first media (so caption can be attached to it)
+    media_items = []
+    if video_id:
+        media_items.append(InputMediaVideo(media=video_id, caption=final_text, parse_mode=None))
+    # add photos
+    for p in photos:
+        media_items.append(InputMediaPhoto(media=p))
 
-    # Envia fotos
-    for photo in answers.get("photos", []):
-        await context.bot.send_photo(chat_id=GROUP_ID, photo=photo)
-
-    # Envia vídeo corretamente
-    if "video" in answers:
-        await context.bot.send_video(chat_id=GROUP_ID, video=answers["video"], caption="🎥 Vídeo de apresentação:")
-
-    # Mensagem final para o candidato
-    await update.effective_chat.send_message(
-        "✅ Obrigado por enviar suas informações!\nNossa equipe irá analisá-las e retornará em breve. 🔎"
-    )
+    try:
+        if media_items:
+            # Telegram allows up to 10 items per media_group
+            # We'll split into chunks of 10. Caption should be on the first media of the first group.
+            groups = [media_items[i:i + 10] for i in range(0, len(media_items), 10)]
+            # For groups after the first, remove captions (they are already in the first group)
+            # If the first group's first item DOES NOT have caption (edge-case), ensure it does.
+            # Send each group
+            for gi, grp in enumerate(groups):
+                # only the first group's first media keeps caption (already set)
+                if gi > 0:
+                    # remove caption attribute for all items in subsequent groups (if any)
+                    for m in grp:
+                        try:
+                            m.caption = None
+                        except Exception:
+                            pass
+                # send media group
+                await context.bot.send_media_group(chat_id=GROUP_ID, media=grp)
+        else:
+            # no media: simply send message
+            await context.bot.send_message(chat_id=GROUP_ID, text=final_text)
+    except Exception as e:
+        # If media_group fails, fallback to send text then media individually
+        try:
+            await context.bot.send_message(chat_id=GROUP_ID, text=final_text)
+            for p in photos:
+                await context.bot.send_photo(chat_id=GROUP_ID, photo=p)
+            if video_id:
+                await context.bot.send_video(chat_id=GROUP_ID, video=video_id, caption="🎥 Vídeo de apresentação")
+        except Exception:
+            # give up but log
+            print("Failed to send media to group:", e)
 
 # ======================
-# MAIN
+# BOOT
 # ======================
+
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(callback_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(CallbackQueryHandler(callback_router))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text))
     app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-    app.add_handler(MessageHandler(filters.VIDEO | filters.Document.MimeType("video/mp4"), handle_video))
+    # video or mp4 document
+    video_filter = filters.VIDEO | filters.Document.MimeType("video/mp4")
+    app.add_handler(MessageHandler(video_filter, handle_video))
 
+    print("SafeJob bot running...")
     app.run_polling()
+
 
 if __name__ == "__main__":
     main()
