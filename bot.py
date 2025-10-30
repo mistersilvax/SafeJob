@@ -190,7 +190,7 @@ TEXTS = {
     }
 }
 
-# === TECLADO ===
+# === TECLADO DE IDIOMAS ===
 def lang_keyboard():
     keyboard = [
         [
@@ -199,4 +199,9 @@ def lang_keyboard():
         ],
         [
             InlineKeyboardButton("🇪🇸 Español", callback_data="lang_es"),
-            InlineKeyboardButton("
+            InlineKeyboardButton("🇷🇺 Русский", callback_data="lang_ru"),
+        ]
+    ]
+    return InlineKeyboardMarkup(keyboard)
+
+
