@@ -1,15 +1,10 @@
 import logging
-from telegram import (
-    Update, InlineKeyboardButton, InlineKeyboardMarkup
-)
-from telegram.ext import (
-    ApplicationBuilder, CommandHandler, CallbackQueryHandler,
-    MessageHandler, ContextTypes, filters
-)
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, filters
 
 # === CONFIGURAÇÕES ===
 TOKEN = "8200201915:AAHxipR8nov2PSAJ3oJLIZDqplOnxhHYRUc"
-GROUP_ID = -5014344988
+GROUP_ID = -5014344988  # ID do grupo para enviar respostas
 logging.basicConfig(level=logging.INFO)
 
 # === TEXTOS MULTILÍNGUES ===
@@ -125,18 +120,12 @@ labels = {
 
 # === TECLADO DE IDIOMAS ===
 def lang_keyboard():
-    keyboard = [
-        [InlineKeyboardButton(lang, callback_data=f"lang_{code}")]
-        for code, lang in languages.items()
-    ]
+    keyboard = [[InlineKeyboardButton(lang, callback_data=f"lang_{code}")] for code, lang in languages.items()]
     return InlineKeyboardMarkup(keyboard)
 
 # === START ===
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "🌍 Please select your language / Por favor, selecione seu idioma:",
-        reply_markup=lang_keyboard()
-    )
+    await update.message.reply_text("🌍 Please select your language / Por favor, selecione seu idioma:", reply_markup=lang_keyboard())
 
 # === ESCOLHA DE IDIOMA ===
 async def language_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -144,16 +133,70 @@ async def language_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     lang = query.data.split("_")[1]
     context.user_data["lang"] = lang
-
-    # Mensagem de segurança + aviso de preenchimento
-    await query.edit_message_text(security_messages[lang] + "\n\n" + fill_carefully[lang])
-    context.user_data["q_index"] = 0
     context.user_data["answers"] = []
+    context.user_data["q_index"] = 0
+    context.user_data["photos"] = []
+
+    await query.edit_message_text(security_messages[lang] + "\n\n" + fill_carefully[lang])
     await ask_next_question(query.message, context)
 
 # === FUNÇÃO PARA PERGUNTAS ===
 async def ask_next_question(message, context):
-    lang = context.user_data.get("lang", "
+    lang = context.user_data.get("lang", "en")
+    index = context.user_data.get("q_index", 0)
+
+    # Se chegou na pergunta de modelo
+    if index == 9:
+        keyboard = [
+            [InlineKeyboardButton("✅ Sim / Yes", callback_data="model_yes"),
+             InlineKeyboardButton("❌ Não / No", callback_data="model_no")]
+        ]
+        await message.reply_text(ask_model[lang], reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
+    # Perguntas normais
+    questions_list = questions[lang]
+    if index < len(questions_list):
+        await message.reply_text(questions_list[index])
+    else:
+        # envio final para o grupo
+        await send_to_group(message, context)
+
+# === HANDLER DE RESPOSTAS ===
+async def handle_answers(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = context.user_data.get("lang", "en")
+    index = context.user_data.get("q_index", 0)
+
+    # salva resposta
+    context.user_data["answers"].append(update.message.text)
+    context.user_data["q_index"] += 1
+    await ask_next_question(update.message, context)
+
+# === HANDLER DE MODELO ===
+async def model_response(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    lang = context.user_data.get("lang", "en")
+
+    if query.data == "model_yes":
+        await query.edit_message_text("📷 Por favor, envie pelo menos 4 fotos agora.")
+        context.user_data["expecting_photos"] = True
+    elif query.data == "model_no":
+        context.user_data["answers"].append("Não")
+        context.user_data["q_index"] += 1
+        await query.edit_message_text("✅ Continuando para a próxima pergunta...")
+        await ask_next_question(query.message, context)
+
+# === HANDLER DE FOTOS ===
+async def handle_photos(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.user_data.get("expecting_photos"):
+        return
+    photos = context.user_data.get("photos", [])
+    photos.append(update.message.photo[-1].file_id)
+    context.user_data["photos"] = photos
+    if len(photos) < 4:
+        await update
+
 
 
 
