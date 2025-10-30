@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>SafeJob Admin - Dashboard</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="p-6 bg-gray-50">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-2xl mb-4">Candidates</h1>
+    <form method="post" action="/set_public_group" class="mb-4">
+      <input name="public_group" placeholder="Public jobs group link" class="p-2 border w-1/2" value="{{config.PUBLIC_JOBS_GROUP_LINK}}">
+      <button class="p-2 bg-green-600 text-white">Set</button>
+    </form>
+    <table class="min-w-full bg-white">
+      <thead>
+        <tr><th>ID</th><th>Name</th><th>Nationality</th><th>Languages</th><th>Created</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr class="border-t">
+          <td>{{ r.id }}</td>
+          <td>{{ r.name }}</td>
+          <td>{{ r.nationality }}</td>
+          <td>{{ r.languages }}</td>
+          <td>{{ r.created_at }}</td>
+          <td><a href="/candidate/{{ r.id }}" class="text-blue-600">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>

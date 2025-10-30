@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Candidate {{ row.name }}</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="p-6 bg-gray-50">
+  <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+    <h2 class="text-xl mb-4">Candidate: {{ row.name }}</h2>
+    <p><strong>Age:</strong> {{ row.age }}</p>
+    <p><strong>Nationality:</strong> {{ row.nationality }}</p>
+    <p><strong>Experience:</strong> {{ row.experience }}</p>
+    <p><strong>Languages:</strong> {{ row.languages }}</p>
+    <p><strong>Location:</strong> {{ row.location }}</p>
+    <p><strong>Fines:</strong> {{ row.fines }}</p>
+    <p><strong>Work Visa:</strong> {{ row.work_visa }}</p>
+    <p><strong>Relocate:</strong> {{ row.relocate }}</p>
+    <p><strong>Need Passport Help:</strong> {{ row.need_passport_help }}</p>
+    <p><strong>Need Police Help:</strong> {{ row.need_police_help }}</p>
+    <p><strong>Notes:</strong> {{ row.notes }}</p>
+
+    {% if row.resume_path %}
+      {% set fname = row.resume_path.split('/')[-1] %}
+      <p><a class="text-blue-600" href="/uploads/resumes/{{ fname }}">Download resume</a></p>
+    {% endif %}
+    {% if row.video_path %}
+      {% set vname = row.video_path.split('/')[-1] %}
+      <p><a class="text-blue-600" href="/uploads/videos/{{ vname }}">Download video</a></p>
+    {% endif %}
+  </div>
+</body>
+</html>
