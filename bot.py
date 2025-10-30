@@ -15,7 +15,7 @@ from telegram.ext import (
 from models import Candidate, session  # seu models.py continua igual
 
 # === CONFIGURAÇÕES ===
-TOKEN = "SEU_TOKEN_AQUI"
+TOKEN = "8200201915:AAHxipR8nov2PSAJ3oJLIZDqplOnxhHYRUc"
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -152,4 +152,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
